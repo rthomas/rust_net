@@ -1,6 +1,7 @@
 use std::ffi::CString;
 use std::fs;
 use std::os::unix::io::AsRawFd;
+use std::mem;
 
 extern crate libc;
 
@@ -8,7 +9,7 @@ fn main() {
     // init the tun device
     
     
-    tun_init();
+    tun_init("tap1");
 }
 
 // Taken from uapi/linux/if.h
@@ -24,24 +25,31 @@ struct IfReq {
     ifr_flags: libc::c_short,
 }
 
-fn tun_init() {
+fn tun_init(name: &str) {
     let mut dev = match fs::File::open("/dev/net/tun") {
         Ok(d) => d,
         Err(err) => panic!(err)
     };
 
-    let dev_name = CString::new("tap1").unwrap();
+    let dev_name = CString::new(name).unwrap();
 
+    // Not sure the correct way to do this - so iterate and populate.
     let mut ifr_name: [libc::c_char; IFNAMSIZ] = [0; IFNAMSIZ];
-    ifr_name.clone_from_slice(dev_name.as_bytes_with_nul() as &[i8]);
-    
-    
+    let mut cnt = 0;
+    for i in dev_name.as_bytes_with_nul() {
+        if cnt >= IFNAMSIZ {
+            panic!("Device name to big {}", name);
+        }
+        ifr_name[cnt] = *i as i8;
+        cnt += 1;
+    }
+
     let mut ifreq = IfReq {
-        ifr_name: c_string,
+        ifr_name: ifr_name,
         ifr_flags: IFF_TAP | IFF_NO_PI
     };
     
-    libc::ioctl(dev.as_raw_fd(), &ifreq as *mut usize);
-    
+    libc::ioctl(dev.as_raw_fd(), &mut ifreq);
+
     println!("{:?}", dev);
 }
