@@ -1,14 +1,11 @@
 use std::ffi::CString;
 use std::fs;
 use std::os::unix::io::AsRawFd;
-use std::mem;
 
 extern crate libc;
 
 fn main() {
     // init the tun device
-    
-    
     tun_init("tap1");
 }
 
@@ -18,6 +15,7 @@ const IFNAMSIZ: usize = 16;
 // Taken from uapi/linux/if_tun.h
 const IFF_TAP: libc::c_short = 0x0002;
 const IFF_NO_PI: libc::c_short = 0x1000;
+const TUNSETIFF: libc::c_int = ('T' as i32) << 8 | 202;
 
 #[repr(C)]
 struct IfReq {
@@ -26,7 +24,7 @@ struct IfReq {
 }
 
 fn tun_init(name: &str) {
-    let mut dev = match fs::File::open("/dev/net/tun") {
+    let dev = match fs::File::open("/dev/net/tun") {
         Ok(d) => d,
         Err(err) => panic!(err)
     };
@@ -48,8 +46,10 @@ fn tun_init(name: &str) {
         ifr_name: ifr_name,
         ifr_flags: IFF_TAP | IFF_NO_PI
     };
-    
-    libc::ioctl(dev.as_raw_fd(), &mut ifreq);
+
+    unsafe {
+        libc::ioctl(dev.as_raw_fd(), TUNSETIFF as u64, &mut ifreq);
+    }
 
     println!("{:?}", dev);
 }
