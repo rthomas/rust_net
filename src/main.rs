@@ -24,7 +24,8 @@ struct IfReq {
 }
 
 fn tun_init(name: &str) {
-    let dev = match fs::File::open("/dev/net/tun") {
+//    let dev = match fs::File::open("/dev/net/tun") {
+    let dev = match fs::OpenOptions::new().read(true).write(true).open("/dev/net/tun") {
         Ok(d) => d,
         Err(err) => panic!(err)
     };
@@ -36,20 +37,25 @@ fn tun_init(name: &str) {
     let mut cnt = 0;
     for i in dev_name.as_bytes_with_nul() {
         if cnt >= IFNAMSIZ {
-            panic!("Device name to big {}", name);
+            panic!("Device name to big '{}'", name);
         }
         ifr_name[cnt] = *i as i8;
         cnt += 1;
     }
 
-    let mut ifreq = IfReq {
+    let ifreq = IfReq {
         ifr_name: ifr_name,
         ifr_flags: IFF_TAP | IFF_NO_PI
     };
 
-    unsafe {
-        libc::ioctl(dev.as_raw_fd(), TUNSETIFF as u64, &mut ifreq);
-    }
+    let retval: libc::c_int = unsafe {
+        libc::ioctl(dev.as_raw_fd(), TUNSETIFF as u64, &ifreq)
+    };
+
+//    if retval == -1 {
+//        println!("ERROR: {:?}", libc::errno);
+//    }
 
     println!("{:?}", dev);
+    println!("{:?}", retval);
 }
