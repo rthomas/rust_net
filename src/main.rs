@@ -4,7 +4,6 @@ use std::os::unix::io::RawFd;
 extern crate libc;
 
 fn main() {
-    // init the tun device
     tun_init("tap0");
 }
 
