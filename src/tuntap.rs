@@ -22,15 +22,15 @@ impl Display for TapDevice {
 
 impl TapDevice {
     pub fn new(dev_name: &str) -> Result<TapDevice, String> {
-        let fd: RawFd = unsafe {
-            tun_alloc(CString::new(dev_name).unwrap().as_ptr())
-        };
+        let fd: RawFd = unsafe { tun_alloc(CString::new(dev_name).unwrap().as_ptr()) };
 
         if fd > 0 {
             println!("Allocated {:?} as fd: {:?}", dev_name, fd);
-            Ok(TapDevice {dev_name: String::from(dev_name), tap_fd: fd})
-        }
-        else {
+            Ok(TapDevice {
+                   dev_name: String::from(dev_name),
+                   tap_fd: fd,
+               })
+        } else {
             Err(format!("Unable to create device: Error {}", fd))
         }
     }
