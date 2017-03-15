@@ -1,19 +1,26 @@
 use std::process::Command;
 
 mod net;
+mod ethernet;
 mod tuntap;
 
 fn main() {
     let dev_name = "tap0";
 
-    let tap = tuntap::TapDevice::new(dev_name).unwrap();
-    println!("{:?}", tap);
-    if_up(dev_name);
-    if_route(dev_name, "10.0.0.0/24");
+    device_init(dev_name);
+
     let tmp = net::inet_pton(net::AF::AfInet, "10.0.0.10");
     println!("{:?}", tmp);
 
     loop {}
+}
+
+fn device_init(dev_name: &str) -> tuntap::TapDevice {
+    let tap = tuntap::TapDevice::new(dev_name).unwrap();
+    println!("{:?}", tap);
+    if_up(dev_name);
+    if_route(dev_name, "10.0.0.0/24");
+    tap
 }
 
 fn if_up(dev_name: &str) -> Result<(), i32> {
