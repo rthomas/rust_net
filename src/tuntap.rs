@@ -21,7 +21,15 @@ impl Display for TapDevice {
 }
 
 impl TapDevice {
+    /// Construct a new TapDevice of the given name.
+    ///
+    /// This makes an unsafe call to C code that will do the ioctl to invoke
+    /// the device.
+    ///
+    /// The device will be cleaned up when the underlying file descriptor is
+    /// closed.
     pub fn new(dev_name: &str) -> Result<TapDevice, String> {
+        // dev_name char* is strncpy'd into the ifr struct for the ioctl call.
         let fd: RawFd = unsafe { tun_alloc(CString::new(dev_name).unwrap().as_ptr()) };
 
         if fd > 0 {
