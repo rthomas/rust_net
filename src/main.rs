@@ -23,7 +23,7 @@ fn device_init(dev_name: &str) -> tuntap::TapDevice {
     tap
 }
 
-fn if_up(dev_name: &str) -> Result<(), i32> {
+fn if_up(dev_name: &str) {
     Command::new("ip")
         .arg("link")
         .arg("set")
@@ -32,10 +32,9 @@ fn if_up(dev_name: &str) -> Result<(), i32> {
         .arg("up")
         .output()
         .expect(format!("Failed to bring {} up", dev_name).as_str());
-    Ok(())
 }
 
-fn if_route(dev_name: &str, cidr: &str) -> Result<(), i32> {
+fn if_route(dev_name: &str, cidr: &str) {
     Command::new("ip")
         .arg("route")
         .arg("add")
@@ -44,5 +43,4 @@ fn if_route(dev_name: &str, cidr: &str) -> Result<(), i32> {
         .arg(cidr)
         .output()
         .expect(format!("Failed to set route {} for {}", cidr, dev_name).as_str());
-    Ok(())
 }
