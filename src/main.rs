@@ -5,14 +5,16 @@ mod ethernet;
 mod tuntap;
 
 fn main() {
-    let dev_name = "tap0";
+    let dev_name = "tap1";
 
-    device_init(dev_name);
+    let tap = device_init(dev_name);
 
     let tmp = net::inet_pton(net::AF::AfInet, "10.0.0.10");
     println!("{:?}", tmp);
 
-    loop {}
+    loop {
+        tap.read();
+    }
 }
 
 fn device_init(dev_name: &str) -> tuntap::TapDevice {
@@ -24,6 +26,7 @@ fn device_init(dev_name: &str) -> tuntap::TapDevice {
 }
 
 fn if_up(dev_name: &str) {
+    println!("Bringing up {}", dev_name);
     Command::new("ip")
         .arg("link")
         .arg("set")
@@ -35,6 +38,7 @@ fn if_up(dev_name: &str) {
 }
 
 fn if_route(dev_name: &str, cidr: &str) {
+    println!("Adding route {} for {}", cidr, dev_name);
     Command::new("ip")
         .arg("route")
         .arg("add")

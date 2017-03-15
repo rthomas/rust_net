@@ -1,7 +1,10 @@
 use std::fmt;
 use std::fmt::{Display, Formatter};
 use std::ffi::CString;
+use std::io::Read;
 use std::os::unix::io::RawFd;
+use std::os::unix::io::FromRawFd;
+use std::os::unix::net::UnixStream;
 
 extern crate libc;
 
@@ -13,6 +16,7 @@ extern "C" {
 pub struct TapDevice {
     dev_name: String,
     tap_fd: RawFd,
+//    stream: UnixStream,
 }
 
 impl Display for TapDevice {
@@ -38,9 +42,25 @@ impl TapDevice {
             Ok(TapDevice {
                    dev_name: String::from(dev_name),
                    tap_fd: fd,
+//                    stream: unsafe { UnixStream::from_raw_fd(fd) },
                })
         } else {
             Err(format!("Unable to create device: Error {}", fd))
+        }
+    }
+
+    pub fn read(&self) {
+        // TODO - We cant do it this shitty way, as from_raw_fd will take
+        // ownership of the fd and close it when it goes out of scope
+
+        let mut stream = unsafe { UnixStream::from_raw_fd(self.tap_fd) };
+        let mut buf: [u8;14] = [0;14];
+        stream.read_exact(&mut buf);
+        for i in &buf {
+            if *i != 0 {
+                println!("{:?}", buf);
+                return
+            }
         }
     }
 
