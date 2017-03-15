@@ -7,7 +7,7 @@ fn main() {
 
     let tap = tuntap::TapDevice::new(dev_name).unwrap();
     if_up(dev_name);
-    if_route("dev_name", "10.0.0.0/24");
+    if_route(dev_name, "10.0.0.0/24");
     loop {
 
     }
