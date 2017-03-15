@@ -1,16 +1,19 @@
 use std::process::Command;
 
+mod net;
 mod tuntap;
 
 fn main() {
     let dev_name = "tap0";
 
     let tap = tuntap::TapDevice::new(dev_name).unwrap();
+    println!("{:?}", tap);
     if_up(dev_name);
     if_route(dev_name, "10.0.0.0/24");
-    loop {
+    let tmp = net::inet_pton(net::AF::AfInet, "10.0.0.10");
+    println!("{:?}", tmp);
 
-    }
+    loop {}
 }
 
 fn if_up(dev_name: &str) -> Result<(), i32> {
@@ -36,4 +39,3 @@ fn if_route(dev_name: &str, cidr: &str) -> Result<(), i32> {
         .expect(format!("Failed to set route {} for {}", cidr, dev_name).as_str());
     Ok(())
 }
-

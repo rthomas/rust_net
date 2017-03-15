@@ -9,6 +9,7 @@ extern "C" {
     fn tun_alloc(dev: *const libc::c_char) -> libc::c_int;
 }
 
+#[derive(Debug)]
 pub struct TapDevice {
     dev_name: String,
     tap_fd: RawFd,
