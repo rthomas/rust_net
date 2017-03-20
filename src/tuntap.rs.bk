@@ -74,7 +74,8 @@ impl TapDevice {
 
         if retval < 0 {
             Err(format!("ioctl error: {}", retval))
-        } else {
+        }
+        else {
             Ok(dev.as_raw_fd())
         }
     }
@@ -88,7 +89,7 @@ impl TapDevice {
     /// closed.
     pub fn new(dev_name: &str) -> Result<TapDevice, String> {
         // dev_name char* is strncpy'd into the ifr struct for the ioctl call.
-        //        let fd: RawFd = unsafe { tun_alloc(CString::new(dev_name).unwrap().as_ptr()) };
+//        let fd: RawFd = unsafe { tun_alloc(CString::new(dev_name).unwrap().as_ptr()) };
 
         let fd = match TapDevice::alloc(dev_name) {
             Ok(fd) => fd,
@@ -98,8 +99,8 @@ impl TapDevice {
         if fd > 0 {
             println!("Allocated {:?} as fd: {:?}", dev_name, fd);
             Ok(TapDevice {
-                   dev_name: String::from(dev_name),
-                   stream: unsafe { Box::new(UnixStream::from_raw_fd(fd)) },
+                    dev_name: String::from(dev_name),
+                    stream: unsafe { Box::new(UnixStream::from_raw_fd(fd)) },
                })
         } else {
             Err(format!("Unable to create device: Error {}", fd))
