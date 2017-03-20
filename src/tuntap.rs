@@ -72,9 +72,11 @@ impl TapDevice {
 
         let retval = unsafe { ioctl(dev.as_raw_fd(), TUNSETIFF, &mut if_req) };
 
-        match retval {
-            -1 => Err("invalid call to ioctl...".to_string()),
-            _ => Ok(dev.as_raw_fd()),
+        if retval < 0 {
+            Err(format!("ioctl error: {}", retval))
+        }
+        else {
+            Ok(dev.as_raw_fd())
         }
     }
 
