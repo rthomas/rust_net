@@ -7,7 +7,7 @@ mod tuntap;
 fn main() {
     let dev_name = "tap1";
 
-    let tap = device_init(dev_name);
+    let mut tap = device_init(dev_name);
 
     let tmp = net::inet_pton(net::AF::AfInet, "10.0.0.10");
     println!("{:?}", tmp);
