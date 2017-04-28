@@ -6,15 +6,6 @@ use tuntap;
 const ETH_MAX_FRAME_SIZE: usize = 1522;
 const ETH_ALEN: usize = 6;
 
-/// Ethernet Frame Header as per uapi/linux/if_ether.h
-#[derive(Debug)]
-#[repr(C)]
-pub struct EthHdr {
-    h_dest: [u8; ETH_ALEN],
-    h_source: [u8; ETH_ALEN],
-    h_proto: u16,
-}
-
 #[derive(Debug)]
 pub struct EthernetFrame {
     dest_mac: [u8; ETH_ALEN],
@@ -46,9 +37,9 @@ impl Ethernet {
         let mut dest_mac: [u8; 6] = [0; 6];
         let mut source_mac: [u8; 6] = [0; 6];
 
-        for i in 0..6 {
+        for i in 0..ETH_ALEN {
             dest_mac[i] = self.buf[i];
-            source_mac[i] = self.buf[i + 6];
+            source_mac[i] = self.buf[i + ETH_ALEN];
         }
 
         let ethertype: [u8; 2] = [self.buf[12], self.buf[13]];
