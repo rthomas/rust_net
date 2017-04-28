@@ -31,7 +31,7 @@ fn handle_frame(frame: &EthernetFrame) {
     };
 }
 
-fn device_init(dev_name: &str) -> tuntap::TapDevice {
+fn device_init(dev_name: &str) -> TapDevice {
     let tap = TapDevice::new(dev_name).unwrap();
     println!("{:?}", tap);
     if_up(dev_name);
