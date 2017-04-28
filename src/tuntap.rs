@@ -2,7 +2,6 @@ use std::fmt;
 use std::fmt::{Display, Formatter};
 use std::ffi::CString;
 use std::fs::File;
-use std::io::Read;
 use std::os::unix::io::AsRawFd;
 
 use std::fs;
@@ -87,24 +86,5 @@ impl TapDevice {
                dev_name: String::from(dev_name),
                device: dev,
            })
-    }
-
-    /// Reads frames off of the device and prints them out. Debug only...
-    pub fn read(&mut self) {
-        let mut buf = vec![0; 1522];
-        let len = match self.device.read(&mut buf) {
-            Err(e) => {
-                println!("ERROR READING STREAM: {}", e);
-                panic!();
-            }
-            Ok(len) => len,
-        };
-        println!("Length: {}", len);
-        for i in &buf {
-            if *i != 0 {
-                println!("{:?}", buf);
-                return;
-            }
-        }
     }
 }
