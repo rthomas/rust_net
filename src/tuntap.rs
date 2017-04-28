@@ -12,7 +12,7 @@ extern crate libc;
 #[derive(Debug)]
 pub struct TapDevice {
     dev_name: String,
-    device: Box<File>,
+    pub device: Box<File>,
 }
 
 impl Display for TapDevice {
@@ -89,15 +89,17 @@ impl TapDevice {
            })
     }
 
+    /// Reads frames off of the device and prints them out. Debug only...
     pub fn read(&mut self) {
-        let mut buf: [u8; 14] = [0; 14];
-        match self.device.read_exact(&mut buf) {
+        let mut buf = vec![0; 1522];
+        let len = match self.device.read(&mut buf) {
             Err(e) => {
                 println!("ERROR READING STREAM: {}", e);
                 panic!();
             }
-            _ => (),
-        }
+            Ok(len) => len,
+        };
+        println!("Length: {}", len);
         for i in &buf {
             if *i != 0 {
                 println!("{:?}", buf);

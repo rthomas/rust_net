@@ -12,8 +12,17 @@ fn main() {
     let tmp = net::inet_pton(net::AF::AfInet, "10.0.0.10");
     println!("{:?}", tmp);
 
+    let mut ethernet = ethernet::Ethernet::new(tap);
+
     loop {
-        tap.read();
+        match ethernet.read_frame() {
+            Ok(frame) => println!("{:?}", frame),
+            Err(e) => {
+                println!("Error: {}", e);
+                return;
+            }
+        }
+        //tap.read();
     }
 }
 
