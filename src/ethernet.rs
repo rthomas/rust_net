@@ -8,7 +8,7 @@ const ETH_MAX_PAYLOAD: u16 = 1500;
 const ETH_ALEN: usize = 6;
 
 #[derive(Debug)]
-enum EtherType {
+pub enum EtherType {
     Payload,
     IPv4,
     Arp,
@@ -17,12 +17,12 @@ enum EtherType {
 
 #[derive(Debug)]
 pub struct EthernetFrame {
-    dest_mac: [u8; ETH_ALEN],
-    source_mac: [u8; ETH_ALEN],
-    tag: Option<[u8; 4]>,
-    ethertype: EtherType,
-    payload: Box<Vec<u8>>,
-    crc: [u8; 4],
+    pub dest_mac: [u8; ETH_ALEN],
+    pub source_mac: [u8; ETH_ALEN],
+    pub tag: Option<[u8; 4]>,
+    pub ethertype: EtherType,
+    pub payload: Box<Vec<u8>>,
+    pub crc: [u8; 4],
 }
 
 pub struct Ethernet {
