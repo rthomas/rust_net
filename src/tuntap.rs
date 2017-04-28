@@ -1,24 +1,18 @@
 use std::fmt;
 use std::fmt::{Display, Formatter};
 use std::ffi::CString;
+use std::fs::File;
 use std::io::Read;
-use std::os::unix::io::RawFd;
-use std::os::unix::io::FromRawFd;
 use std::os::unix::io::AsRawFd;
-use std::os::unix::net::UnixStream;
 
 use std::fs;
 
 extern crate libc;
 
-extern "C" {
-    fn tun_alloc(dev: *const libc::c_char) -> libc::c_int;
-}
-
 #[derive(Debug)]
 pub struct TapDevice {
     dev_name: String,
-    stream: Box<UnixStream>,
+    device: Box<File>,
 }
 
 impl Display for TapDevice {
@@ -28,18 +22,14 @@ impl Display for TapDevice {
 }
 
 impl TapDevice {
-    fn alloc(dev_name: &str) -> Result<RawFd, String> {
-        extern "C" {
-            fn ioctl(fd: RawFd, op: usize, ifr: &mut IfReq) -> libc::c_int;
-        }
-
+    fn alloc(dev_name: &str) -> Result<Box<File>, String> {
         // From values in uapi/linux/if.h
         const IFNAMSIZ: usize = 16;
 
         // From values in uapi/linux/if_tun.h
         const IFF_TAP: libc::c_short = 0x0002;
         const IFF_NO_PI: libc::c_short = 0x1000;
-        const TUNSETIFF: usize = 1074025674;
+        const TUNSETIFF: libc::c_ulong = 1074025674;
 
         #[derive(Debug)]
         #[repr(C)]
@@ -49,7 +39,7 @@ impl TapDevice {
         };
 
         let dev = match fs::OpenOptions::new().read(true).write(true).open("/dev/net/tun") {
-            Ok(d) => d,
+            Ok(d) => Box::new(d),
             Err(err) => return Err(format!("{}", err)),
         };
 
@@ -70,12 +60,12 @@ impl TapDevice {
 
         println!("if_req: {:?}", if_req);
 
-        let retval = unsafe { ioctl(dev.as_raw_fd(), TUNSETIFF, &mut if_req) };
+        let retval = unsafe { libc::ioctl(dev.as_raw_fd(), TUNSETIFF, &mut if_req) };
 
         if retval < 0 {
             Err(format!("ioctl error: {}", retval))
         } else {
-            Ok(dev.as_raw_fd())
+            Ok(dev)
         }
     }
 
@@ -87,28 +77,27 @@ impl TapDevice {
     /// The device will be cleaned up when the underlying file descriptor is
     /// closed.
     pub fn new(dev_name: &str) -> Result<TapDevice, String> {
-        // dev_name char* is strncpy'd into the ifr struct for the ioctl call.
-        //        let fd: RawFd = unsafe { tun_alloc(CString::new(dev_name).unwrap().as_ptr()) };
-
-        let fd = match TapDevice::alloc(dev_name) {
-            Ok(fd) => fd,
-            Err(e) => panic!(e),
+        let dev = match TapDevice::alloc(dev_name) {
+            Ok(dev) => dev,
+            Err(e) => return Err(format!("Unable to create device: Error {}", e)),
         };
 
-        if fd > 0 {
-            println!("Allocated {:?} as fd: {:?}", dev_name, fd);
-            Ok(TapDevice {
-                   dev_name: String::from(dev_name),
-                   stream: unsafe { Box::new(UnixStream::from_raw_fd(fd)) },
-               })
-        } else {
-            Err(format!("Unable to create device: Error {}", fd))
-        }
+        println!("Allocated {:?} as fd: {:?}", dev_name, dev);
+        Ok(TapDevice {
+               dev_name: String::from(dev_name),
+               device: dev,
+           })
     }
 
     pub fn read(&mut self) {
         let mut buf: [u8; 14] = [0; 14];
-        self.stream.read_exact(&mut buf);
+        match self.device.read_exact(&mut buf) {
+            Err(e) => {
+                println!("ERROR READING STREAM: {}", e);
+                panic!();
+            }
+            _ => (),
+        }
         for i in &buf {
             if *i != 0 {
                 println!("{:?}", buf);
