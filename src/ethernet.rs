@@ -7,6 +7,11 @@ const ETH_MAX_FRAME_SIZE: usize = 1522;
 const ETH_MAX_PAYLOAD: u16 = 1500;
 const ETH_ALEN: usize = 6;
 
+pub trait HandleFrame {
+    fn handle_frame(frame: EthernetFrame);
+    fn ethertype() -> u16;
+}
+
 #[derive(Debug)]
 pub enum EtherType {
     Payload,
