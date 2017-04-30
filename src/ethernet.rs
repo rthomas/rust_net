@@ -66,6 +66,11 @@ impl<'a> Ethernet<'a> {
             handlers: HashMap::new(),
         }
     }
+
+    pub fn register_handler(&mut self, handler: &'a HandleFrame) -> &Ethernet {
+        self.handlers.insert(handler.ethertype(), handler);
+        self
+    }
     
     pub fn read_frame(&mut self) -> Result<EthernetFrame, String> {
         let len = match self.dev.device.read(&mut self.buf) {
