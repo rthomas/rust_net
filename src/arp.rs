@@ -19,7 +19,10 @@ fn slice_to_u16(s: &[u8]) -> u16 {
     (s[0] as u16) << 8 | (s[1] as u16)
 }
 
-fn parse_arp_packet(payload: &Vec<u8>) -> ArpPacket {
+fn parse_arp_packet(payload: &Vec<u8>) -> Result<ArpPacket, String> {
+    if payload.len() != 28 {
+        return Err(format!("Invalid Arp Payload: {:?}", payload));
+    }
     let mut sender_hardware_addr: [u8; 6] = [0; 6];
     let mut target_hardware_addr: [u8; 6] = [0; 6];
     let mut sender_protocol_addr: [u8; 4] = [0; 4];
@@ -34,7 +37,7 @@ fn parse_arp_packet(payload: &Vec<u8>) -> ArpPacket {
         }
     }
 
-    ArpPacket {
+    Ok(ArpPacket {
         hardware_type: slice_to_u16(&payload[0..2]),
         protocol_type: slice_to_u16(&payload[2..4]),
         hardware_length: payload[4],
@@ -44,7 +47,7 @@ fn parse_arp_packet(payload: &Vec<u8>) -> ArpPacket {
         sender_protocol_addr: sender_protocol_addr,
         target_hardware_addr: target_hardware_addr,
         target_protocol_addr: target_protocol_addr,
-    }    
+    })  
 }
 
 impl Arp {
@@ -55,9 +58,9 @@ impl Arp {
 
 impl HandleFrame for Arp {
     fn handle_frame(&self, frame: &EthernetFrame) {
-        println!("ARP:: {:?}", frame);
-        let packet = parse_arp_packet(&frame.payload);
-        println!("ARP Packet: {:?}", packet);
+        println!("{:?}", frame);
+        let packet = parse_arp_packet(&frame.payload).unwrap();
+        println!("{:?}", packet);
     }
 
     fn ethertype(&self) -> u16 {
