@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::io::Read;
 
 use tuntap;
@@ -8,8 +9,8 @@ const ETH_MAX_PAYLOAD: u16 = 1500;
 const ETH_ALEN: usize = 6;
 
 pub trait HandleFrame {
-    fn handle_frame(frame: EthernetFrame);
-    fn ethertype() -> u16;
+    fn handle_frame(&self, frame: &EthernetFrame);
+    fn ethertype(&self) -> u16;
 }
 
 #[derive(Debug)]
@@ -30,9 +31,10 @@ pub struct EthernetFrame {
     pub crc: [u8; 4],
 }
 
-pub struct Ethernet {
+pub struct Ethernet<'a> {
     dev: tuntap::TapDevice,
     buf: Vec<u8>,
+    handlers: HashMap<u16, &'a HandleFrame>,
 }
 
 /// Returns either the known ethertype or None.
@@ -56,11 +58,12 @@ fn ethertype_lookup(key: [u8; 2]) -> Option<EtherType> {
     }
 }
 
-impl Ethernet {
-    pub fn new(dev: tuntap::TapDevice) -> Ethernet {
+impl<'a> Ethernet<'a> {
+    pub fn new(dev: tuntap::TapDevice) -> Ethernet<'a> {
         Ethernet {
             dev: dev,
             buf: vec![0; ETH_MAX_FRAME_SIZE],
+            handlers: HashMap::new(),
         }
     }
     
