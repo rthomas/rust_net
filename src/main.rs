@@ -1,5 +1,5 @@
 use std::process::Command;
-use ethernet::{Ethernet, EthernetFrame, EtherType};
+use ethernet::{Ethernet, EthernetFrame};
 use tuntap::TapDevice;
 
 mod arp;
@@ -8,28 +8,24 @@ mod tuntap;
 
 fn main() {
     let dev_name = "tap1";
-
     let tap = device_init(dev_name);
+
+    let arp = arp::Arp::new();
+
     let mut ethernet = Ethernet::new(tap);
-
+    ethernet.register_handler(&arp);
+    
     loop {
-        match ethernet.read_frame() {
-            Ok(frame) => {
-                //println!("{:?}", frame),
-                handle_frame(&frame);
-            }
-            Err(e) => {
-                println!("Error: {}", e);
-            }
-        }
+        ethernet.handle_frame();
+        //match ethernet.read_frame() {
+        //    Ok(frame) => {
+        //        println!("{:?}", frame);
+        //    }
+        //    Err(e) => {
+        //        println!("Error: {}", e);
+        //    }
+        //}
     }
-}
-
-fn handle_frame(frame: &EthernetFrame) {
-    match frame.ethertype {
-        EtherType::Arp => println!("ARP: {:?}", frame),
-        _ => ()
-    };
 }
 
 fn device_init(dev_name: &str) -> TapDevice {

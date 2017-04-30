@@ -1,9 +1,19 @@
-use ethernet::EthernetFrame;
+use ethernet::{EthernetFrame, HandleFrame};
 
-fn handle_frame(frame: &EthernetFrame) {
+pub struct Arp {}
 
+impl Arp {
+    pub fn new() -> Arp {
+        Arp {}
+    }
 }
 
-fn ethertype() -> u16 {
-    0x0806
+impl HandleFrame for Arp {
+    fn handle_frame(&self, frame: &EthernetFrame) {
+        println!("ARP:: {:?}", frame);
+    }
+
+    fn ethertype(&self) -> u16 {
+        0x0806
+    }
 }
