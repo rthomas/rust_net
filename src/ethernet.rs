@@ -20,7 +20,6 @@ pub struct EthernetFrame {
     pub tag: Option<[u8; 4]>,
     pub ethertype: u16,
     pub payload: Box<Vec<u8>>,
-    pub crc: [u8; 4],
 }
 
 pub struct Ethernet<'a> {
@@ -76,6 +75,7 @@ impl<'a> Ethernet<'a> {
             Err(e) => return Err(format!("Error reading from device: {}", e)),
             Ok(len) => len,
         };
+
         let mut dest_mac: [u8; 6] = [0; 6];
         let mut source_mac: [u8; 6] = [0; 6];
 
@@ -86,20 +86,17 @@ impl<'a> Ethernet<'a> {
 
         let ethertype = (self.buf[12] as u16) << 8 | (self.buf[13] as u16);
 
-        let crc: [u8; 4] =
-            [self.buf[len - 4], self.buf[len - 3], self.buf[len - 2], self.buf[len - 1]];
-
-        let mut payload: Vec<u8> = vec![0; len-5-14];
-        payload.clone_from_slice(&self.buf[14..len - 5]);
-
+        let mut payload: Vec<u8> = vec![0; len-14];
+        payload.clone_from_slice(&self.buf[14..len]);
+        
         let frame = EthernetFrame {
             dest_mac: dest_mac,
             source_mac: source_mac,
             tag: None,
             ethertype: ethertype,
             payload: Box::new(payload),
-            crc: crc,
         };
+
         Ok(frame)
     }
 }
