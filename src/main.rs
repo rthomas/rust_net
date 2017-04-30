@@ -1,5 +1,5 @@
 use std::process::Command;
-use ethernet::{Ethernet, EthernetFrame};
+use ethernet::Ethernet;
 use tuntap::TapDevice;
 
 mod arp;

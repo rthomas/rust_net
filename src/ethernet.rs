@@ -54,7 +54,7 @@ impl<'a> Ethernet<'a> {
             }
         };
 
-        if frame.ethertype <= 1500 {
+        if frame.ethertype <= ETH_MAX_PAYLOAD {
             // Payload length indication
             println!("PAYLOAD FRAME: {:?}", frame);
         }
