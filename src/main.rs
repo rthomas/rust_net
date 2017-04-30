@@ -2,6 +2,7 @@ use std::process::Command;
 use ethernet::{Ethernet, EthernetFrame, EtherType};
 use tuntap::TapDevice;
 
+mod arp;
 mod ethernet;
 mod tuntap;
 

@@ -63,7 +63,7 @@ impl Ethernet {
             buf: vec![0; ETH_MAX_FRAME_SIZE],
         }
     }
-
+    
     pub fn read_frame(&mut self) -> Result<EthernetFrame, String> {
         let len = match self.dev.device.read(&mut self.buf) {
             Err(e) => return Err(format!("Error reading from device: {}", e)),
