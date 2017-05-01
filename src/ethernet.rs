@@ -3,6 +3,7 @@ use std::io::Read;
 use std::io::Write;
 
 use tuntap;
+use net;
 
 // 1522 is the max length of an L2 ethernet frame, up to the end of the CRC.
 const ETH_MAX_FRAME_SIZE: usize = 1522;
@@ -56,14 +57,16 @@ impl EthernetPayload {
 
 pub struct Ethernet<'a> {
     dev: tuntap::TapDevice,
+    net_dev: &'a net::NetworkDevice,
     buf: Vec<u8>,
     handlers: HashMap<u16, &'a mut HandleFrame>,
 }
 
 impl<'a> Ethernet<'a> {
-    pub fn new(dev: tuntap::TapDevice) -> Ethernet<'a> {
+    pub fn new(net_dev: &'a net::NetworkDevice, dev: tuntap::TapDevice) -> Ethernet<'a> {
         Ethernet {
             dev: dev,
+            net_dev: net_dev,
             buf: vec![0; ETH_MAX_FRAME_SIZE],
             handlers: HashMap::new(),
         }
@@ -89,20 +92,32 @@ impl<'a> Ethernet<'a> {
             println!("PAYLOAD FRAME: {:?}", frame);
         }
         else {
-            match self.handlers.get_mut(&frame.ethertype) {
+            let resp = match self.handlers.get_mut(&frame.ethertype) {
                 Some(handler) => {
                     let resp = match handler.handle_frame(&frame) {
                         Ok(payload) => payload,
                         Err(e) => return Err(e),
                     };
-                    
+                    resp
                 }
                 None => {
                     return Err(format!("Unknown EtherType: {:X}", frame.ethertype));
                 }
-            }
+                
+            };
+            let reply_frame = EthernetFrame {
+                dest_mac: frame.source_mac,
+                source_mac: self.net_dev.hw,
+                tag: None,
+                ethertype: frame.ethertype,
+                payload: resp,                        
+            };
+            match self.write_frame(&reply_frame) {
+                Ok(_) => return Ok(()),
+                Err(e) => return Err(e),
+            }   
         }
-        Ok(())
+        Err("No handler path found".to_string())
     }
     
     pub fn read_frame(&mut self) -> Result<EthernetFrame, String> {
@@ -136,6 +151,7 @@ impl<'a> Ethernet<'a> {
     }
 
     pub fn write_frame(&mut self, frame: &EthernetFrame) -> Result<(), String> {
+        println!("WRITING: {:?}", frame);
         match self.dev.device.write(&frame.to_vec()[..]) {
             Ok(_) => Ok(()),
             Err(e) => Err(format!("Error writing to device: {}", e)),

@@ -14,7 +14,7 @@ fn main() {
 
     let mut arp = arp::Arp::new(&net_dev);
 
-    let mut ethernet = Ethernet::new(tap);
+    let mut ethernet = Ethernet::new(&net_dev, tap);
     ethernet.register_handler(&mut arp);
     
     loop {
