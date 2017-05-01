@@ -19,18 +19,19 @@ pub struct EthernetFrame {
     pub source_mac: [u8; ETH_ALEN],
     pub tag: Option<[u8; 4]>,
     pub ethertype: u16,
-    pub payload: Box<Vec<u8>>,
+    pub payload: EthernetPayload,
 }
 
+#[derive(Debug)]
 pub struct EthernetPayload {
-    payload: Box<Vec<u8>>,
+    payload: Vec<u8>,
 }
 
 impl EthernetPayload {
     /// Constructs a new EthernetPayload by taking ownership of the vector `payload`
     pub fn new(payload: Vec<u8>) -> EthernetPayload {
         EthernetPayload {
-            payload: Box::new(payload),
+            payload: payload,
         }
     }
 
@@ -76,8 +77,11 @@ impl<'a> Ethernet<'a> {
         else {
             match self.handlers.get_mut(&frame.ethertype) {
                 Some(handler) => {
-                    // TODO: Take the response from and put it back on the wire
-                    handler.handle_frame(&frame);
+                    let resp = match handler.handle_frame(&frame) {
+                        Ok(payload) => payload,
+                        Err(e) => return Err(e),
+                    };
+                    
                 }
                 None => {
                     return Err(format!("Unknown EtherType: {:X}", frame.ethertype));
@@ -111,9 +115,13 @@ impl<'a> Ethernet<'a> {
             source_mac: source_mac,
             tag: None,
             ethertype: ethertype,
-            payload: Box::new(payload),
+            payload: EthernetPayload::new(payload),
         };
 
         Ok(frame)
+    }
+
+    pub fn write_frame(&mut self, frame: &EthernetFrame) -> Result<(), String> {
+        Ok(())
     }
 }

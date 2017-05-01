@@ -136,7 +136,7 @@ impl<'a> HandleFrame for Arp<'a> {
 
     fn handle_frame(&mut self, frame: &EthernetFrame) -> Result<EthernetPayload, String> {
         println!("{:?}", frame);
-        let packet = match parse_arp_packet(&frame.payload) {
+        let packet = match parse_arp_packet(frame.payload.as_vec()) {
             Ok(p) => p,
             Err(e) => return Err(format!("Error parsing ARP Packet: {}", e)),
         };
