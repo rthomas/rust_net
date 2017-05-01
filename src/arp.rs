@@ -1,4 +1,9 @@
+use std::collections::HashMap;
+
 use ethernet::{EthernetFrame, EthernetPayload, HandleFrame};
+
+type HardwareAddr = [u8; 6];
+type ProtocolAddr = [u8; 4];
 
 #[derive(Debug)]
 struct ArpPacket {
@@ -7,10 +12,10 @@ struct ArpPacket {
     hardware_length: u8,
     protocol_length: u8,
     operation: u16,
-    sender_hardware_addr: [u8; 6],
-    sender_protocol_addr: [u8; 4],
-    target_hardware_addr: [u8; 6],
-    target_protocol_addr: [u8; 4],
+    sender_hardware_addr: HardwareAddr,
+    sender_protocol_addr: ProtocolAddr,
+    target_hardware_addr: HardwareAddr,
+    target_protocol_addr: ProtocolAddr,
 }
 
 pub struct Arp {}
@@ -24,10 +29,10 @@ fn parse_arp_packet(payload: &Vec<u8>) -> Result<ArpPacket, String> {
     if payload.len() != 28 {
         return Err(format!("Invalid Arp Payload: {:?}", payload));
     }
-    let mut sender_hardware_addr: [u8; 6] = [0; 6];
-    let mut target_hardware_addr: [u8; 6] = [0; 6];
-    let mut sender_protocol_addr: [u8; 4] = [0; 4];
-    let mut target_protocol_addr: [u8; 4] = [0; 4];
+    let mut sender_hardware_addr = [0; 6];
+    let mut target_hardware_addr = [0; 6];
+    let mut sender_protocol_addr = [0; 4];
+    let mut target_protocol_addr = [0; 4];
     
     for i in 0..6 {
         sender_hardware_addr[i] = payload[i+8];
@@ -64,7 +69,10 @@ impl Arp {
 impl HandleFrame for Arp {
     fn handle_frame(&self, frame: &EthernetFrame) -> Result<EthernetPayload, String> {
         println!("{:?}", frame);
-        let packet = parse_arp_packet(&frame.payload).unwrap();
+        let packet = match parse_arp_packet(&frame.payload) {
+            Ok(p) => p,
+            Err(e) => return Err(format!("Error parsing ARP Packet: {}", e)),
+        };
         println!("{:?}", packet);
 
         // TODO: Not an empty response...
@@ -74,4 +82,10 @@ impl HandleFrame for Arp {
     fn ethertype(&self) -> u16 {
         0x0806
     }
+}
+
+#[derive(Hash,Eq,PartialEq,Debug)]
+struct TranslationTableKey {
+    protocol_type: [u8; 2],
+    protocol_addr: ProtocolAddr,
 }
