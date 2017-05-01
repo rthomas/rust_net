@@ -4,6 +4,10 @@ use ethernet::{EthernetFrame, EthernetPayload, HandleFrame};
 
 type HardwareAddr = [u8; 6];
 type ProtocolAddr = [u8; 4];
+type ProtocolType = u16;
+
+const ETH_HTYPE:u16 = 0x0001;
+const IPv4_PTYPE:u16 = 0x0800;
 
 #[derive(Debug)]
 struct ArpPacket {
@@ -17,8 +21,6 @@ struct ArpPacket {
     target_hardware_addr: HardwareAddr,
     target_protocol_addr: ProtocolAddr,
 }
-
-pub struct Arp {}
 
 #[inline]
 fn slice_to_u16(s: &[u8]) -> u16 {
@@ -56,18 +58,37 @@ fn parse_arp_packet(payload: &Vec<u8>) -> Result<ArpPacket, String> {
     })  
 }
 
+pub struct Arp {
+    translation_table: HashMap<TranslationTableKey, HardwareAddr>,
+}
+
 impl Arp {
     pub fn new() -> Arp {
-        Arp {}
+        Arp {
+            translation_table: HashMap::new(),
+        }
     }
 
-    fn handle_arp_packet(&self, packet: &ArpPacket) -> Result<Vec<u8>, String> {
+    fn handle_arp_packet(&mut self, packet: &ArpPacket) -> Result<Vec<u8>, String> {
+        if packet.hardware_type != ETH_HTYPE {
+            return Err(format!("Unknown hardware type: {}", packet.hardware_type));
+        }
+
+        let key = TranslationTableKey::new(packet.protocol_type, packet.sender_protocol_addr);
+        if self.translation_table.contains_key(&key) {
+            self.translation_table.insert(key, packet.sender_hardware_addr);
+        }
+        
         Err("".to_string())
     }
 }
 
 impl HandleFrame for Arp {
-    fn handle_frame(&self, frame: &EthernetFrame) -> Result<EthernetPayload, String> {
+    fn ethertype(&self) -> u16 {
+        0x0806
+    }
+
+    fn handle_frame(&mut self, frame: &EthernetFrame) -> Result<EthernetPayload, String> {
         println!("{:?}", frame);
         let packet = match parse_arp_packet(&frame.payload) {
             Ok(p) => p,
@@ -75,17 +96,26 @@ impl HandleFrame for Arp {
         };
         println!("{:?}", packet);
 
-        // TODO: Not an empty response...
-        Ok(EthernetPayload::new(Vec::new()))
-    }
+        let resp = match self.handle_arp_packet(&packet) {
+            Ok(v) => v,
+            Err(e) => return Err(e),
+        };
 
-    fn ethertype(&self) -> u16 {
-        0x0806
+        Ok(EthernetPayload::new(resp))
     }
 }
 
 #[derive(Hash,Eq,PartialEq,Debug)]
 struct TranslationTableKey {
-    protocol_type: [u8; 2],
+    protocol_type: ProtocolType,
     protocol_addr: ProtocolAddr,
+}
+
+impl TranslationTableKey {
+    pub fn new(t: ProtocolType, addr: ProtocolAddr) -> TranslationTableKey {
+        TranslationTableKey {
+            protocol_type: t,
+            protocol_addr: addr,
+        }
+    }
 }

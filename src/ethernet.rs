@@ -9,7 +9,7 @@ const ETH_MAX_PAYLOAD: u16 = 1500;
 const ETH_ALEN: usize = 6;
 
 pub trait HandleFrame {
-    fn handle_frame(&self, frame: &EthernetFrame) -> Result<EthernetPayload, String>;
+    fn handle_frame(&mut self, frame: &EthernetFrame) -> Result<EthernetPayload, String>;
     fn ethertype(&self) -> u16;
 }
 
@@ -74,7 +74,7 @@ impl<'a> Ethernet<'a> {
             println!("PAYLOAD FRAME: {:?}", frame);
         }
         else {
-            match self.handlers.get(&frame.ethertype) {
+            match self.handlers.get_mut(&frame.ethertype) {
                 Some(handler) => {
                     // TODO: Take the response from and put it back on the wire
                     handler.handle_frame(&frame);
