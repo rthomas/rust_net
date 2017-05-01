@@ -10,10 +10,10 @@ fn main() {
     let dev_name = "tap1";
     let tap = device_init(dev_name);
 
-    let arp = arp::Arp::new();
+    let mut arp = arp::Arp::new();
 
     let mut ethernet = Ethernet::new(tap);
-    ethernet.register_handler(&arp);
+    ethernet.register_handler(&mut arp);
     
     loop {
         match ethernet.handle_frame() {

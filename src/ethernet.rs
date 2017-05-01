@@ -42,7 +42,7 @@ impl EthernetPayload {
 pub struct Ethernet<'a> {
     dev: tuntap::TapDevice,
     buf: Vec<u8>,
-    handlers: HashMap<u16, &'a HandleFrame>,
+    handlers: HashMap<u16, &'a mut HandleFrame>,
 }
 
 impl<'a> Ethernet<'a> {
@@ -54,7 +54,7 @@ impl<'a> Ethernet<'a> {
         }
     }
 
-    pub fn register_handler(&mut self, handler: &'a HandleFrame) -> &Ethernet {
+    pub fn register_handler(&mut self, handler: &'a mut HandleFrame) -> &Ethernet<'a> {
         self.handlers.insert(handler.ethertype(), handler);
         self
     }
