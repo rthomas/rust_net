@@ -1,13 +1,16 @@
 use std::collections::HashMap;
 
+use net::NetworkDevice;
 use ethernet::{EthernetFrame, EthernetPayload, HandleFrame};
 
 type HardwareAddr = [u8; 6];
 type ProtocolAddr = [u8; 4];
 type ProtocolType = u16;
 
-const ETH_HTYPE:u16 = 0x0001;
-const IPv4_PTYPE:u16 = 0x0800;
+const ETH_HTYPE: u16 = 0x0001;
+const IPv4_PTYPE: u16 = 0x0800;
+const ARP_OP_REQUEST: u16 = 0x0001;
+const ARP_OP_REPLY: u16 = 0x0002;
 
 #[derive(Debug)]
 struct ArpPacket {
@@ -20,6 +23,25 @@ struct ArpPacket {
     sender_protocol_addr: ProtocolAddr,
     target_hardware_addr: HardwareAddr,
     target_protocol_addr: ProtocolAddr,
+}
+
+impl ArpPacket {
+    pub fn to_vec(&self) -> Vec<u8> {
+        let mut p = Vec::new();
+        p.push((self.hardware_type >> 8) as u8);
+        p.push((self.hardware_type & 0x00ff) as u8);
+        p.push((self.protocol_type >> 8) as u8);
+        p.push((self.protocol_type & 0x00ff) as u8);
+        p.push(self.hardware_length);
+        p.push(self.protocol_length);
+        p.push((self.operation >> 8) as u8);
+        p.push((self.operation & 0x00ff) as u8);
+        p.extend(self.sender_hardware_addr.iter());
+        p.extend(self.sender_protocol_addr.iter());
+        p.extend(self.target_hardware_addr.iter());
+        p.extend(self.target_protocol_addr.iter());
+        p
+    }
 }
 
 #[inline]
@@ -58,32 +80,56 @@ fn parse_arp_packet(payload: &Vec<u8>) -> Result<ArpPacket, String> {
     })  
 }
 
-pub struct Arp {
+pub struct Arp<'a> {
+    dev: &'a NetworkDevice,
     translation_table: HashMap<TranslationTableKey, HardwareAddr>,
 }
 
-impl Arp {
-    pub fn new() -> Arp {
+impl<'a> Arp<'a> {
+    pub fn new(dev: &NetworkDevice) -> Arp {
         Arp {
+            dev: dev,
             translation_table: HashMap::new(),
         }
     }
 
-    fn handle_arp_packet(&mut self, packet: &ArpPacket) -> Result<Vec<u8>, String> {
+    fn handle_arp_packet(&mut self, packet: &ArpPacket) -> Result<ArpPacket, String> {
         if packet.hardware_type != ETH_HTYPE {
             return Err(format!("Unknown hardware type: {}", packet.hardware_type));
         }
 
         let key = TranslationTableKey::new(packet.protocol_type, packet.sender_protocol_addr);
+        let mut merge = false;
         if self.translation_table.contains_key(&key) {
-            self.translation_table.insert(key, packet.sender_hardware_addr);
+            self.translation_table.insert(key.clone(), packet.sender_hardware_addr);
+            merge = true;
+        }
+        if self.dev.ip == packet.target_protocol_addr {
+            if !merge {
+                self.translation_table.insert(key.clone(), packet.sender_hardware_addr);
+            }
+            
+            if packet.operation == ARP_OP_REQUEST {
+                let reply = ArpPacket {
+                    hardware_type: packet.hardware_type,
+                    protocol_type: packet.protocol_type,
+                    hardware_length: packet.hardware_length,
+                    protocol_length: packet.protocol_length,
+                    operation: ARP_OP_REPLY,
+                    sender_hardware_addr: self.dev.hw,
+                    sender_protocol_addr: self.dev.ip,
+                    target_hardware_addr: packet.sender_hardware_addr,
+                    target_protocol_addr: packet.sender_protocol_addr,
+                };
+                return Ok(reply);
+            }
         }
         
         Err("".to_string())
     }
 }
 
-impl HandleFrame for Arp {
+impl<'a> HandleFrame for Arp<'a> {
     fn ethertype(&self) -> u16 {
         0x0806
     }
@@ -101,11 +147,12 @@ impl HandleFrame for Arp {
             Err(e) => return Err(e),
         };
 
-        Ok(EthernetPayload::new(resp))
+        println!("REPLY: {:?}", resp);
+        Ok(EthernetPayload::new(resp.to_vec()))
     }
 }
 
-#[derive(Hash,Eq,PartialEq,Debug)]
+#[derive(Clone,Hash,Eq,PartialEq,Debug)]
 struct TranslationTableKey {
     protocol_type: ProtocolType,
     protocol_addr: ProtocolAddr,

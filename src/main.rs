@@ -5,12 +5,14 @@ use tuntap::TapDevice;
 mod arp;
 mod ethernet;
 mod tuntap;
+mod net;
 
 fn main() {
     let dev_name = "tap1";
     let tap = device_init(dev_name);
+    let net_dev = net::NetworkDevice::new([10, 0, 0, 1], [10, 20, 30, 40, 50, 60]);
 
-    let mut arp = arp::Arp::new();
+    let mut arp = arp::Arp::new(&net_dev);
 
     let mut ethernet = Ethernet::new(tap);
     ethernet.register_handler(&mut arp);
