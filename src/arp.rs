@@ -15,6 +15,7 @@ struct ArpPacket {
 
 pub struct Arp {}
 
+#[inline]
 fn slice_to_u16(s: &[u8]) -> u16 {
     (s[0] as u16) << 8 | (s[1] as u16)
 }
