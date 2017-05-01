@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 use std::io::Read;
+use std::io::Write;
 
 use tuntap;
 
@@ -20,6 +21,19 @@ pub struct EthernetFrame {
     pub tag: Option<[u8; 4]>,
     pub ethertype: u16,
     pub payload: EthernetPayload,
+}
+
+impl EthernetFrame {
+    /// Serializes the frame to a Vec<u8>
+    pub fn to_vec(&self) -> Vec<u8> {
+        let mut f = Vec::new();
+        f.extend(self.dest_mac.iter());
+        f.extend(self.source_mac.iter());
+        f.push((self.ethertype >> 8) as u8);
+        f.push((self.ethertype & 0x00ff) as u8);
+        f.extend(self.payload.as_vec().iter());
+        f
+    }
 }
 
 #[derive(Debug)]
@@ -122,6 +136,9 @@ impl<'a> Ethernet<'a> {
     }
 
     pub fn write_frame(&mut self, frame: &EthernetFrame) -> Result<(), String> {
-        Ok(())
+        match self.dev.device.write(&frame.to_vec()[..]) {
+            Ok(_) => Ok(()),
+            Err(e) => Err(format!("Error writing to device: {}", e)),
+        }
     }
 }
