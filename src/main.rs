@@ -16,15 +16,10 @@ fn main() {
     ethernet.register_handler(&arp);
     
     loop {
-        ethernet.handle_frame();
-        //match ethernet.read_frame() {
-        //    Ok(frame) => {
-        //        println!("{:?}", frame);
-        //    }
-        //    Err(e) => {
-        //        println!("Error: {}", e);
-        //    }
-        //}
+        match ethernet.handle_frame() {
+            Err(e) => println!("{}", e),
+            _ => (),
+        }
     }
 }
 

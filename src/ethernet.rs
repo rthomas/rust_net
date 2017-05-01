@@ -9,7 +9,7 @@ const ETH_MAX_PAYLOAD: u16 = 1500;
 const ETH_ALEN: usize = 6;
 
 pub trait HandleFrame {
-    fn handle_frame(&self, frame: &EthernetFrame);
+    fn handle_frame(&self, frame: &EthernetFrame) -> Result<EthernetPayload, String>;
     fn ethertype(&self) -> u16;
 }
 
@@ -20,6 +20,23 @@ pub struct EthernetFrame {
     pub tag: Option<[u8; 4]>,
     pub ethertype: u16,
     pub payload: Box<Vec<u8>>,
+}
+
+pub struct EthernetPayload {
+    payload: Box<Vec<u8>>,
+}
+
+impl EthernetPayload {
+    /// Constructs a new EthernetPayload by taking ownership of the vector `payload`
+    pub fn new(payload: Vec<u8>) -> EthernetPayload {
+        EthernetPayload {
+            payload: Box::new(payload),
+        }
+    }
+
+    pub fn as_vec(&self) -> &Vec<u8> {
+        &self.payload
+    }
 }
 
 pub struct Ethernet<'a> {
@@ -44,12 +61,11 @@ impl<'a> Ethernet<'a> {
 
     /// Reads the next frame and calls the handler registered to the ethertype of the
     /// frame.
-    pub fn handle_frame(&mut self) {
+    pub fn handle_frame(&mut self) -> Result<(), String> {
         let frame = match self.read_frame() {
             Ok(frame) => frame,
             Err(e) => {
-                println!("Frame Read Error: {}", e);
-                return
+                return Err(format!("Frame Read Error: {}", e));
             }
         };
 
@@ -60,14 +76,15 @@ impl<'a> Ethernet<'a> {
         else {
             match self.handlers.get(&frame.ethertype) {
                 Some(handler) => {
+                    // TODO: Take the response from and put it back on the wire
                     handler.handle_frame(&frame);
                 }
                 None => {
-                    println!("Unknown EtherType: {:X}", frame.ethertype);
-                    return
+                    return Err(format!("Unknown EtherType: {:X}", frame.ethertype));
                 }
             }
         }
+        Ok(())
     }
     
     pub fn read_frame(&mut self) -> Result<EthernetFrame, String> {

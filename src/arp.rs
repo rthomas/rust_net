@@ -1,4 +1,4 @@
-use ethernet::{EthernetFrame, HandleFrame};
+use ethernet::{EthernetFrame, EthernetPayload, HandleFrame};
 
 #[derive(Debug)]
 struct ArpPacket {
@@ -54,13 +54,20 @@ impl Arp {
     pub fn new() -> Arp {
         Arp {}
     }
+
+    fn handle_arp_packet(&self, packet: &ArpPacket) -> Result<Vec<u8>, String> {
+        Err("".to_string())
+    }
 }
 
 impl HandleFrame for Arp {
-    fn handle_frame(&self, frame: &EthernetFrame) {
+    fn handle_frame(&self, frame: &EthernetFrame) -> Result<EthernetPayload, String> {
         println!("{:?}", frame);
         let packet = parse_arp_packet(&frame.payload).unwrap();
         println!("{:?}", packet);
+
+        // TODO: Not an empty response...
+        Ok(EthernetPayload::new(Vec::new()))
     }
 
     fn ethertype(&self) -> u16 {
