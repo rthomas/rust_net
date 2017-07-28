@@ -8,7 +8,6 @@ type ProtocolAddr = [u8; 4];
 type ProtocolType = u16;
 
 const ETH_HTYPE: u16 = 0x0001;
-const IPv4_PTYPE: u16 = 0x0800;
 const ARP_OP_REQUEST: u16 = 0x0001;
 const ARP_OP_REPLY: u16 = 0x0002;
 
@@ -147,6 +146,8 @@ impl<'a> HandleFrame for Arp<'a> {
             Err(e) => return Err(e),
         };
 
+        println!("TT: {:?}", self.translation_table);
+        
         println!("REPLY: {:?}", resp);
         Ok(EthernetPayload::new(resp.to_vec()))
     }
