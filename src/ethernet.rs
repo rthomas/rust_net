@@ -90,6 +90,7 @@ impl<'a> Ethernet<'a> {
         if frame.ethertype <= ETH_MAX_PAYLOAD {
             // Payload length indication
             println!("PAYLOAD FRAME: {:?}", frame);
+            // TODO - Handle payload frames.
         }
         else {
             let resp = match self.handlers.get_mut(&frame.ethertype) {
@@ -101,9 +102,8 @@ impl<'a> Ethernet<'a> {
                     resp
                 }
                 None => {
-                    return Err(format!("Unknown EtherType: {:X}", frame.ethertype));
+                    return Err(format!("Unhandled EtherType: {:X}", frame.ethertype));
                 }
-                
             };
             let reply_frame = EthernetFrame {
                 dest_mac: frame.source_mac,
@@ -151,7 +151,6 @@ impl<'a> Ethernet<'a> {
     }
 
     pub fn write_frame(&mut self, frame: &EthernetFrame) -> Result<(), String> {
-        println!("WRITING: {:?}", frame);
         match self.dev.device.write(&frame.to_vec()[..]) {
             Ok(_) => Ok(()),
             Err(e) => Err(format!("Error writing to device: {}", e)),
